@@ -269,10 +269,16 @@ def remove_excess_files_and_dirs(src, dest, status_text, remove_excess, current_
     ignored_directories = {"System Volume Information", "$RECYCLE.BIN"}
 
     for dest_root, dest_dirs, dest_files in os.walk(dest, topdown=False):
+        if SmartDriveSyncApp.stop_sync_flag:
+            return deleted_count
+            
         src_root = os.path.join(src, os.path.relpath(dest_root, dest))
         current_src_file_path.set(f"Current working path: {dest_root}")
 
         for dest_file in dest_files:
+            if SmartDriveSyncApp.stop_sync_flag:
+                return deleted_count
+                
             src_file_path = os.path.join(src_root, dest_file)
             dest_file_path = os.path.join(dest_root, dest_file)
 
@@ -287,6 +293,10 @@ def remove_excess_files_and_dirs(src, dest, status_text, remove_excess, current_
                     status_text.update()
 
         for dest_dir in dest_dirs:
+            # Check if we need to stop
+            if SmartDriveSyncApp.stop_sync_flag:
+                return deleted_count
+                
             src_dir_path = os.path.join(src_root, dest_dir)
             dest_dir_path = os.path.join(dest_root, dest_dir)
 
@@ -303,7 +313,6 @@ def remove_excess_files_and_dirs(src, dest, status_text, remove_excess, current_
                     status_text.update()
 
     return deleted_count
-
 def file_exists_in_dest(src_file_path, dest, src):
     src_rel_path = os.path.relpath(src_file_path, src)
     dest_file_path = os.path.join(dest, src_rel_path)
