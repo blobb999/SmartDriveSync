@@ -328,7 +328,6 @@ def is_system_file(file_path):
     except Exception:
         return False
 def sync_directories(src, dest, status_text, progress_bar, use_hash, remove_excess, root, compare_mod_date):
-#def sync_directories(src, dest, status_text, progress_bar, use_hash, remove_excess, SmartDriveSyncApp, compare_mod_date):
     global renamed_count, moved_count, copied_count
 
     def init_counts():
