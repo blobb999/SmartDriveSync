@@ -7,7 +7,6 @@ from hashlib import md5
 from collections import defaultdict
 from DriveWatch import DriveWatch
 
-
 root = Tk()
 
 src_folder_path = StringVar()
@@ -96,23 +95,27 @@ class SmartDriveSyncApp:
             self.stop_sync_flag = True
             self.sync_thread.join()
 
-    def browse_directory(self, which):
-        path = tk.StringVar()
-        path.set("")
+    def browse_src_directory(self):
         directory = filedialog.askdirectory()
         if directory:
-            path.set(directory)
-            drive_letter = self.get_drive_from_path(directory)
-            if drive_letter:
-                self.drive_letters[which] = drive_letter
-        self.update_speed_label(self.drive_watch.get_speed_info())
-        return path
-
-    def browse_src_directory(self):
-        self.src_folder_path = self.browse_directory('src')
+            self.src_folder_path.set(directory)
+            src_folder_entry.delete(0, END)
+            src_folder_entry.insert(0, directory)
+            src_drive_letter = self.get_drive_from_path(directory)
+            if src_drive_letter:
+                self.drive_letters['src'] = src_drive_letter
+        self.update_disk_speed_info(self.drive_watch.get_speed_info())
 
     def browse_dest_directory(self):
-        self.dest_folder_path = self.browse_directory('dest')
+        directory = filedialog.askdirectory()
+        if directory:
+            self.dest_folder_path.set(directory)
+            dest_folder_entry.delete(0, END)
+            dest_folder_entry.insert(0, directory)
+            dest_drive_letter = self.get_drive_from_path(directory)
+            if dest_drive_letter:
+                self.drive_letters['dest'] = dest_drive_letter
+        self.update_disk_speed_info(self.drive_watch.get_speed_info())
 
     def update_speed_label(self, speed_info):
         self.update_speed_label_ui(speed_info)
@@ -179,7 +182,6 @@ def set_file_to_normal(file_path):
         return False
 
 thread_limiter = threading.Semaphore(2)
-
 
 def start_sync_thread():
     if not thread_limiter.acquire(blocking=False):
@@ -267,16 +269,10 @@ def remove_excess_files_and_dirs(src, dest, status_text, remove_excess, current_
     ignored_directories = {"System Volume Information", "$RECYCLE.BIN"}
 
     for dest_root, dest_dirs, dest_files in os.walk(dest, topdown=False):
-        if SmartDriveSyncApp.stop_sync_flag:
-            return deleted_count
-            
         src_root = os.path.join(src, os.path.relpath(dest_root, dest))
         current_src_file_path.set(f"Current working path: {dest_root}")
 
         for dest_file in dest_files:
-            if SmartDriveSyncApp.stop_sync_flag:
-                return deleted_count
-                
             src_file_path = os.path.join(src_root, dest_file)
             dest_file_path = os.path.join(dest_root, dest_file)
 
@@ -291,10 +287,6 @@ def remove_excess_files_and_dirs(src, dest, status_text, remove_excess, current_
                     status_text.update()
 
         for dest_dir in dest_dirs:
-            # Check if we need to stop
-            if SmartDriveSyncApp.stop_sync_flag:
-                return deleted_count
-                
             src_dir_path = os.path.join(src_root, dest_dir)
             dest_dir_path = os.path.join(dest_root, dest_dir)
 
@@ -320,11 +312,9 @@ def file_exists_in_dest(src_file_path, dest, src):
     for root, _, files in os.walk(dest):
         for file in files:
             file_path = os.path.join(root, file)
-            dest_rel_path = os.path.relpath(file_path, dest)
-            if os.path.exists(dest_file_path) and src_rel_path == dest_rel_path:
+            if os.path.exists(dest_file_path) and os.path.basename(src_file_path) == os.path.basename(file_path):
                 return file_path
     return None
-
 
 def update_status_text(text):
     status_text.insert(END, text)
@@ -339,7 +329,7 @@ def is_system_file(file_path):
         return False
     
 def sync_directories(src, dest, status_text, progress_bar, use_hash, remove_excess, root, compare_mod_date):
-    global renamed_count, moved_count, copied_count, delete_count
+    global renamed_count, moved_count, copied_count
 
     def init_counts():
         global copied_count, deleted_count, renamed_count, moved_count
@@ -466,16 +456,6 @@ def sync_directories(src, dest, status_text, progress_bar, use_hash, remove_exce
 
                         copy_file(src_file_path, dest_file_path, status_text, root)
 
-            for src_root, src_dirs, src_files_list in os.walk(src):
-                if SmartDriveSyncApp.stop_sync_flag:
-                    break
-
-                dest_root = os.path.join(dest, os.path.normpath(os.path.relpath(src_root, src)))
-                if not os.path.exists(dest_root):
-                    os.makedirs(dest_root)
-                    status_text.insert(END, f"Created directory: {dest_root}\nCurrent working path: {dest_root}\n")
-                    status_text.see(END)
-                    status_text.update()
             for src_root, src_dirs, src_files_list in os.walk(src):
                 if SmartDriveSyncApp.stop_sync_flag:
                     break
