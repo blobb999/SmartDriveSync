@@ -320,9 +320,11 @@ def file_exists_in_dest(src_file_path, dest, src):
     for root, _, files in os.walk(dest):
         for file in files:
             file_path = os.path.join(root, file)
-            if os.path.exists(dest_file_path) and os.path.basename(src_file_path) == os.path.basename(file_path):
+            dest_rel_path = os.path.relpath(file_path, dest)
+            if os.path.exists(dest_file_path) and src_rel_path == dest_rel_path:
                 return file_path
     return None
+
 
 def update_status_text(text):
     status_text.insert(END, text)
