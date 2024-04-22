@@ -218,17 +218,21 @@ def update_progress_bar(progress_bar):
     progress_bar.step(1)
     root.after(300, lambda: update_progress_bar(progress_bar))
 
-def hash_file(file_path, block_size=65536, sample_size=65536, num_samples=3):
+def hash_file(file_path, sample_size=65536):
     hasher = xxhash.xxh64()
     try:
         with open(file_path, "rb") as f:
             file_size = os.path.getsize(file_path)
-            if file_size < sample_size * num_samples:
-                for block in iter(lambda: f.read(block_size), b""):
+            if file_size <= sample_size * 3:
+                # Wenn die Dateigröße kleiner oder gleich 3 * sample_size ist,
+                # nehmen wir 3 Samples aus der gesamten Datei.
+                for _ in range(3):
+                    block = f.read(sample_size)
                     hasher.update(block)
             else:
-                step = (file_size - sample_size) // (num_samples - 1)
-                for i in range(num_samples):
+                # Ansonsten nehmen wir 3 Samples aus unterschiedlichen Positionen der Datei.
+                step = (file_size - sample_size) // 2
+                for i in range(3):
                     f.seek(i * step)
                     block = f.read(sample_size)
                     hasher.update(block)
